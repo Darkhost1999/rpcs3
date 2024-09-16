@@ -166,7 +166,7 @@ struct cfg_root : cfg::node
 		cfg::_bool precise_zpass_count{ this, "Accurate ZCULL stats", true };
 		cfg::_int<1, 8> consecutive_frames_to_draw{ this, "Consecutive Frames To Draw", 1, true};
 		cfg::_int<1, 8> consecutive_frames_to_skip{ this, "Consecutive Frames To Skip", 1, true};
-		cfg::_int<50, 800> resolution_scale_percent{ this, "Resolution Scale", 100 };
+		cfg::_int<25, 800> resolution_scale_percent{ this, "Resolution Scale", 100 };
 		cfg::uint<0, 16> anisotropic_level_override{ this, "Anisotropic Filter Override", 0, true };
 		cfg::_float<-32, 32> texture_lod_bias{ this, "Texture LOD Bias Addend", 0, true };
 		cfg::_int<1, 1024> min_scalable_dimension{ this, "Minimum Scalable Dimension", 16 };
@@ -281,6 +281,7 @@ struct cfg_root : cfg::node
 		cfg::_bool lock_overlay_input_to_player_one{this, "Lock overlay input to player one", false, true};
 		cfg::string midi_devices{this, "Emulated Midi devices", "ßßß@@@ßßß@@@ßßß@@@"};
 		cfg::_bool load_sdl_mappings{ this, "Load SDL GameController Mappings", true };
+		cfg::_bool debug_overlay{ this, "IO Debug overlay", false, true };
 
 	} io{ this };
 
@@ -314,6 +315,7 @@ struct cfg_root : cfg::node
 		cfg::_bool upnp_enabled{this, "UPNP Enabled", false};
 
 		cfg::_enum<np_psn_status> psn_status{this, "PSN status", np_psn_status::disabled};
+		cfg::string country{this, "PSN Country", "us"};
 	} net{this};
 
 	struct node_savestate : cfg::node
@@ -340,6 +342,8 @@ struct cfg_root : cfg::node
 		cfg::_bool show_shader_compilation_hint{ this, "Show shader compilation hint", true, true };
 		cfg::_bool show_ppu_compilation_hint{ this, "Show PPU compilation hint", true, true };
 		cfg::_bool show_pressure_intensity_toggle_hint{ this, "Show pressure intensity toggle hint", true, true };
+		cfg::_bool show_analog_limiter_toggle_hint{ this, "Show analog limiter toggle hint", true, true };
+		cfg::_bool show_mouse_and_keyboard_toggle_hint{ this, "Show mouse and keyboard toggle hint", true, true };
 		cfg::_bool use_native_interface{ this, "Use native user interface", true };
 		cfg::string gdb_server{ this, "GDB Server", "127.0.0.1:2345" };
 		cfg::_bool silence_all_logs{ this, "Silence All Logs", false, true };

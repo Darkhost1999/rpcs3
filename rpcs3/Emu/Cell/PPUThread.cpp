@@ -1455,18 +1455,14 @@ void ppu_thread::dump_regs(std::string& ret, std::any& custom_data) const
 			continue;
 		}
 
-		if (usz index = dis_asm.last_opcode.rfind(",cr"); index < dis_asm.last_opcode.size() - 4)
-		{
-			const char result = dis_asm.last_opcode[index + 3];
+		usz index = dis_asm.last_opcode.rfind(",cr");
 
-			if (result >= '0' && result <= '7')
-			{
-				func_data->preferred_cr_field_index = result - '0';
-				break;
-			}
+		if (index > dis_asm.last_opcode.size() - 4)
+		{
+			index = dis_asm.last_opcode.rfind(" cr");
 		}
 
-		if (usz index = dis_asm.last_opcode.rfind(" cr"); index < dis_asm.last_opcode.size() - 4)
+		if (index <= dis_asm.last_opcode.size() - 4)
 		{
 			const char result = dis_asm.last_opcode[index + 3];
 
@@ -3296,13 +3292,13 @@ const auto ppu_stcx_accurate_tx = build_function_asm<u64(*)(u32 raddr, u64 rtime
 	maybe_flush_lbr(c);
 	c.ret();
 #else
+	UNUSED(args);
+
 	// Unimplemented should fail.
 	c.brk(Imm(0x42));
 	c.ret(a64::x30);
 #endif
 });
-
-extern atomic_t<u8>& get_resrv_waiters_count(u32 raddr);
 
 template <typename T>
 static bool ppu_store_reservation(ppu_thread& ppu, u32 addr, u64 reg_value)
@@ -3553,11 +3549,11 @@ static bool ppu_store_reservation(ppu_thread& ppu, u32 addr, u64 reg_value)
 				if (ppu.res_notify_time == (vm::reservation_acquire(notify) & -128))
 				{
 					ppu.state += cpu_flag::wait;
-					vm::reservation_notifier(notify).notify_all();
+					vm::reservation_notifier_notify(notify);
 					notified = true;
 				}
 
-				if (get_resrv_waiters_count(addr))
+				if (vm::reservation_notifier_count(addr))
 				{
 					if (!notified)
 					{
@@ -3566,7 +3562,7 @@ static bool ppu_store_reservation(ppu_thread& ppu, u32 addr, u64 reg_value)
 					}
 					else if ((addr ^ notify) & -128)
 					{
-						res.notify_all();
+						vm::reservation_notifier_notify(addr);
 						ppu.res_notify = 0;
 					}
 				}
@@ -3581,7 +3577,7 @@ static bool ppu_store_reservation(ppu_thread& ppu, u32 addr, u64 reg_value)
 			{
 				// Try to postpone notification to when PPU is asleep or join notifications on the same address
 				// This also optimizes a mutex - won't notify after lock is aqcuired (prolonging the critical section duration), only notifies on unlock
-				if (get_resrv_waiters_count(addr))
+				if (vm::reservation_notifier_count(addr))
 				{
 					ppu.res_notify = addr;
 					ppu.res_notify_time = rtime + 128;
@@ -3607,7 +3603,7 @@ static bool ppu_store_reservation(ppu_thread& ppu, u32 addr, u64 reg_value)
 		if (ppu.res_notify_time == (vm::reservation_acquire(notify) & -128))
 		{
 			ppu.state += cpu_flag::wait;
-			vm::reservation_notifier(notify).notify_all();
+			vm::reservation_notifier_notify(notify);
 			static_cast<void>(ppu.test_stopped());
 		}
 
@@ -5174,7 +5170,17 @@ bool ppu_initialize(const ppu_module& info, bool check_only, u64 file_size)
 		ensure(jit_mod.symbol_resolver);
 	}
 
+#ifdef __APPLE__
+	// Symbol resolver is in JIT mem, so we must enable execution
+	pthread_jit_write_protect_np(true);
+#endif
+
 	jit_mod.symbol_resolver(vm::g_exec_addr, info.segs[0].addr);
+
+#ifdef __APPLE__
+	// Symbol resolver is in JIT mem, so we must enable execution
+	pthread_jit_write_protect_np(false);
+#endif
 
 	// Find a BLR-only function in order to copy it to all BLRs (some games need it)
 	for (const auto& func : info.funcs)

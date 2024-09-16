@@ -24,6 +24,7 @@
 #include "emu_settings_type.h"
 #include "render_creator.h"
 #include "microphone_creator.h"
+#include "Emu/NP/rpcn_countries.h"
 
 #include "Emu/GameInfo.h"
 #include "Emu/System.h"
@@ -199,8 +200,8 @@ settings_dialog::settings_dialog(std::shared_ptr<gui_settings> gui_settings, std
 		Q_EMIT EmuSettingsApplied();
 
 		// Discord Settings can be saved regardless of WITH_DISCORD_RPC
-		m_gui_settings->SetValue(gui::m_richPresence, m_use_discord);
-		m_gui_settings->SetValue(gui::m_discordState, m_discord_state);
+		m_gui_settings->SetValue(gui::m_richPresence, m_use_discord, false);
+		m_gui_settings->SetValue(gui::m_discordState, m_discord_state, true);
 
 #ifdef WITH_DISCORD_RPC
 		if (m_use_discord != use_discord_old)
@@ -543,6 +544,33 @@ settings_dialog::settings_dialog(std::shared_ptr<gui_settings> gui_settings, std
 
 	m_emu_settings->EnhanceComboBox(ui->frameLimitBox, emu_settings_type::FrameLimit);
 	SubscribeTooltip(ui->gb_frameLimit, tooltips.settings.frame_limit);
+
+	{
+		const QList<QScreen*> screens = QGuiApplication::screens();
+
+		f64 rate = 20.; // Minimum rate
+
+		for (int i = 0; i < screens.count(); i++)
+		{
+			rate = std::fmax(rate, ::at32(screens, i)->refreshRate());
+		}
+
+		for (int i = 0; i < ui->frameLimitBox->count(); i++)
+		{
+			const QVariantList var_list = ui->frameLimitBox->itemData(i).toList();
+
+			if (var_list.size() != 2 || !var_list[1].canConvert<int>())
+			{
+				fmt::throw_exception("Invalid data found in combobox entry %d (text='%s', listsize=%d, itemcount=%d)", i, ui->frameLimitBox->itemText(i), var_list.size(), ui->frameLimitBox->count());
+			}
+
+			if (static_cast<int>(frame_limit_type::display_rate) == var_list[1].toInt())
+			{
+				ui->frameLimitBox->setItemText(i, tr("Display (%1)", "Frame Limit").arg(std::round(rate)));
+				break;
+			}
+		}
+	}
 
 	m_emu_settings->EnhanceComboBox(ui->antiAliasing, emu_settings_type::MSAA);
 	SubscribeTooltip(ui->gb_antiAliasing, tooltips.settings.anti_aliasing);
@@ -1468,6 +1496,22 @@ settings_dialog::settings_dialog(std::shared_ptr<gui_settings> gui_settings, std
 	m_emu_settings->EnhanceComboBox(ui->psnStatusBox, emu_settings_type::PSNStatus);
 	SubscribeTooltip(ui->gb_psnStatusBox, tooltips.settings.psn_status);
 
+	settings_dialog::refresh_countrybox();
+	connect(ui->psnCountryBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index)
+	{
+		if (index < 0)
+			return;
+
+		const QVariant country_code = ui->psnCountryBox->itemData(index);
+
+		if (!country_code.isValid() || !country_code.canConvert<QString>())
+			return;
+
+		m_emu_settings->SetSetting(emu_settings_type::PSNCountry, country_code.toString().toStdString());
+	});
+	
+	SubscribeTooltip(ui->gb_psnCountryBox, tooltips.settings.psn_country);
+
 	if (!game)
 	{
 		remove_item(ui->psnStatusBox, static_cast<int>(np_psn_status::psn_fake), static_cast<int>(g_cfg.net.psn_status.def));
@@ -1796,6 +1840,12 @@ settings_dialog::settings_dialog(std::shared_ptr<gui_settings> gui_settings, std
 
 	m_emu_settings->EnhanceCheckBox(ui->showPressureIntensityToggleHint, emu_settings_type::ShowPressureIntensityToggleHint);
 	SubscribeTooltip(ui->showPressureIntensityToggleHint, tooltips.settings.show_pressure_intensity_toggle_hint);
+
+	m_emu_settings->EnhanceCheckBox(ui->showAnalogLimiterToggleHint, emu_settings_type::ShowAnalogLimiterToggleHint);
+	SubscribeTooltip(ui->showAnalogLimiterToggleHint, tooltips.settings.show_analog_limiter_toggle_hint);
+
+	m_emu_settings->EnhanceCheckBox(ui->showMouseAndKeyboardToggleHint, emu_settings_type::ShowMouseAndKeyboardToggleHint);
+	SubscribeTooltip(ui->showMouseAndKeyboardToggleHint, tooltips.settings.show_mouse_and_keyboard_toggle_hint);
 
 	m_emu_settings->EnhanceCheckBox(ui->pauseDuringHomeMenu, emu_settings_type::PauseDuringHomeMenu);
 	SubscribeTooltip(ui->pauseDuringHomeMenu, tooltips.settings.pause_during_home_menu);
@@ -2414,6 +2464,10 @@ settings_dialog::settings_dialog(std::shared_ptr<gui_settings> gui_settings, std
 	m_emu_settings->EnhanceCheckBox(ui->perfReport, emu_settings_type::PerformanceReport);
 	SubscribeTooltip(ui->perfReport, tooltips.settings.enable_performance_report);
 
+	// Checkboxes: IO debug options
+	m_emu_settings->EnhanceCheckBox(ui->debugOverlayIO, emu_settings_type::IoDebugOverlay);
+	SubscribeTooltip(ui->debugOverlayIO, tooltips.settings.debug_overlay_io);
+
 	// Comboboxes
 
 	m_emu_settings->EnhanceComboBox(ui->combo_accurate_ppu_128, emu_settings_type::AccuratePPU128Loop, true);
@@ -2430,10 +2484,24 @@ settings_dialog::settings_dialog(std::shared_ptr<gui_settings> gui_settings, std
 	}
 }
 
+void settings_dialog::refresh_countrybox()
+{
+	const auto& vec_countries = countries::g_countries;
+	const std::string cur_country = m_emu_settings->GetSetting(emu_settings_type::PSNCountry);
+
+	ui->psnCountryBox->clear();
+
+	for (const auto& [cnty, code] : vec_countries)
+	{
+		ui->psnCountryBox->addItem(QString::fromUtf8(cnty.data(), static_cast<int>(cnty.size())), QString::fromUtf8(code.data(), static_cast<int>(code.size())));
+	}
+	ui->psnCountryBox->setCurrentIndex(ui->psnCountryBox->findData(QString::fromStdString(cur_country)));
+	ui->psnCountryBox->model()->sort(0, Qt::AscendingOrder);
+}
+
 void settings_dialog::closeEvent([[maybe_unused]] QCloseEvent* event)
 {
 	m_gui_settings->SetValue(gui::cfg_geometry, saveGeometry());
-	m_gui_settings->sync();
 }
 
 settings_dialog::~settings_dialog()

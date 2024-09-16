@@ -351,6 +351,9 @@
     <ClCompile Include="Emu\Cell\Modules\cellAtracMulti.cpp">
       <Filter>Emu\Cell\Modules</Filter>
     </ClCompile>
+    <ClCompile Include="Emu\Cell\Modules\cellAtracXdec.cpp">
+      <Filter>Emu\Cell\Modules</Filter>
+    </ClCompile>
     <ClCompile Include="Emu\Cell\Modules\cellAudio.cpp">
       <Filter>Emu\Cell\Modules</Filter>
     </ClCompile>
@@ -1264,6 +1267,9 @@
     <ClCompile Include="Emu\Io\MouseHandler.cpp">
       <Filter>Emu\Io</Filter>
     </ClCompile>
+    <ClCompile Include="Emu\NP\rpcn_countries.cpp">
+      <Filter>Emu\NP</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Crypto\aes.h">
@@ -1594,6 +1600,9 @@
       <Filter>Emu\Cell\Modules</Filter>
     </ClInclude>
     <ClInclude Include="Emu\Cell\Modules\cellAtracMulti.h">
+      <Filter>Emu\Cell\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="Emu\Cell\Modules\cellAtracXdec.h">
       <Filter>Emu\Cell\Modules</Filter>
     </ClInclude>
     <ClInclude Include="Emu\Cell\Modules\cellAudio.h">
@@ -2230,9 +2239,6 @@
     <ClInclude Include="Emu\RSX\Program\GLSLCommon.h">
       <Filter>Emu\GPU\RSX\Program</Filter>
     </ClInclude>
-    <ClInclude Include="Emu\RSX\Program\program_state_cache2.hpp">
-      <Filter>Emu\GPU\RSX\Program</Filter>
-    </ClInclude>
     <ClInclude Include="Emu\RSX\Program\program_util.h">
       <Filter>Emu\GPU\RSX\Program</Filter>
     </ClInclude>
@@ -2571,6 +2577,12 @@
     </ClInclude>
     <ClInclude Include="Emu\CPU\Hypervisor.h">
       <Filter>Emu\CPU</Filter>
+    </ClInclude>
+    <ClInclude Include="Emu\NP\rpcn_countries.h">
+      <Filter>Emu\NP</Filter>
+    </ClInclude>
+    <ClInclude Include="Emu\Cell\Modules\cellSysutilAvc.h">
+      <Filter>Emu\Cell\Modules</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

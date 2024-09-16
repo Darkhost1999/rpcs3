@@ -1206,10 +1206,11 @@ public:
 	void operator()()
 	{
 		bool was_paused = false;
+		u64 sleep_until = get_system_time();
 
 		for (u32 i = 1; thread_ctrl::state() != thread_state::aborting; i++)
 		{
-			thread_ctrl::wait_for(1'000'000);
+			thread_ctrl::wait_until(&sleep_until, 1'000'000);
 
 			const bool is_paused = Emu.IsPaused();
 
@@ -1340,7 +1341,7 @@ bool lv2_obj::sleep(cpu_thread& cpu, const u64 timeout)
 			else if (usz notify_later_idx = std::basic_string_view<const void*>{g_to_notify, std::size(g_to_notify)}.find_first_of(std::add_pointer_t<const void>{});
 				notify_later_idx != umax)
 			{
-				g_to_notify[notify_later_idx] = &vm::reservation_notifier(addr);
+				g_to_notify[notify_later_idx] = vm::reservation_notifier_notify(addr, true);
 
 				if (notify_later_idx < std::size(g_to_notify) - 1)
 				{
@@ -1350,7 +1351,7 @@ bool lv2_obj::sleep(cpu_thread& cpu, const u64 timeout)
 			}
 			else
 			{
-				vm::reservation_notifier(addr).notify_all();
+				vm::reservation_notifier_notify(addr);
 			}
 		}
 	}
@@ -1394,7 +1395,7 @@ bool lv2_obj::awake(cpu_thread* thread, s32 prio)
 			else if (usz notify_later_idx = std::basic_string_view<const void*>{g_to_notify, std::size(g_to_notify)}.find_first_of(std::add_pointer_t<const void>{});
 				notify_later_idx != umax)
 			{
-				g_to_notify[notify_later_idx] = &vm::reservation_notifier(addr);
+				g_to_notify[notify_later_idx] = vm::reservation_notifier_notify(addr, true);
 
 				if (notify_later_idx < std::size(g_to_notify) - 1)
 				{
@@ -1404,7 +1405,7 @@ bool lv2_obj::awake(cpu_thread* thread, s32 prio)
 			}
 			else
 			{
-				vm::reservation_notifier(addr).notify_all();
+				vm::reservation_notifier_notify(addr);
 			}
 		}
 	}

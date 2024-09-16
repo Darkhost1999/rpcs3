@@ -98,6 +98,7 @@
     <ClCompile Include="Emu\IPC_socket.cpp" />
     <ClCompile Include="Emu\localized_string.cpp" />
     <ClCompile Include="Emu\NP\rpcn_config.cpp" />
+    <ClCompile Include="Emu\NP\rpcn_countries.cpp" />
     <ClCompile Include="Emu\NP\upnp_config.cpp" />
     <ClCompile Include="Emu\NP\upnp_handler.cpp" />
     <ClCompile Include="Emu\perf_monitor.cpp" />
@@ -282,6 +283,7 @@
     <ClCompile Include="Emu\Cell\Modules\cellAdec.cpp" />
     <ClCompile Include="Emu\Cell\Modules\cellAtrac.cpp" />
     <ClCompile Include="Emu\Cell\Modules\cellAtracMulti.cpp" />
+    <ClCompile Include="Emu\Cell\Modules\cellAtracXdec.cpp" />
     <ClCompile Include="Emu\Cell\Modules\cellAudio.cpp" />
     <ClCompile Include="Emu\Cell\Modules\cellAudioOut.cpp" />
     <ClCompile Include="Emu\Cell\Modules\cellAuthDialog.cpp" />
@@ -533,6 +535,7 @@
     <ClInclude Include="Emu\Cell\Modules\cellRemotePlay.h" />
     <ClInclude Include="Emu\Cell\Modules\cellSsl.h" />
     <ClInclude Include="Emu\Cell\Modules\cellStorage.h" />
+    <ClInclude Include="Emu\Cell\Modules\cellSysutilAvc.h" />
     <ClInclude Include="Emu\Cell\Modules\libfs_utility_init.h" />
     <ClInclude Include="Emu\Cell\Modules\sys_crashdump.h" />
     <ClInclude Include="Emu\config_mode.h" />
@@ -578,6 +581,7 @@
     <ClInclude Include="Emu\localized_string_id.h" />
     <ClInclude Include="Emu\NP\generated\np2_structs_generated.h" />
     <ClInclude Include="Emu\NP\np_handler.h" />
+    <ClInclude Include="Emu\NP\rpcn_countries.h" />
     <ClInclude Include="Emu\NP\signaling_handler.h" />
     <ClInclude Include="Emu\NP\upnp_config.h" />
     <ClInclude Include="Emu\NP\upnp_handler.h" />
@@ -801,6 +805,7 @@
     <ClInclude Include="Emu\Cell\Modules\cellAdec.h" />
     <ClInclude Include="Emu\Cell\Modules\cellAtrac.h" />
     <ClInclude Include="Emu\Cell\Modules\cellAtracMulti.h" />
+    <ClInclude Include="Emu\Cell\Modules\cellAtracXdec.h" />
     <ClInclude Include="Emu\Cell\Modules\cellAudio.h" />
     <ClInclude Include="Emu\Cell\Modules\cellAudioIn.h" />
     <ClInclude Include="Emu\Cell\Modules\cellAudioOut.h" />
@@ -915,7 +920,6 @@
     <ClInclude Include="Emu\RSX\Program\CgBinaryProgram.h" />
     <ClInclude Include="Emu\RSX\Common\BufferUtils.h" />
     <ClInclude Include="Emu\RSX\Program\FragmentProgramDecompiler.h" />
-    <ClInclude Include="Emu\RSX\Program\program_state_cache2.hpp" />
     <ClInclude Include="Emu\RSX\Common\ring_buffer_helper.h" />
     <ClInclude Include="Emu\RSX\Program\ShaderParam.h" />
     <ClInclude Include="Emu\RSX\Common\surface_store.h" />

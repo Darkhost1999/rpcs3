@@ -16,6 +16,7 @@
 #include "Emu/Cell/lv2/sys_rsxaudio.h"
 #include "Emu/RSX/rsx_utils.h"
 #include "Emu/RSX/Overlays/overlay_message.h"
+#include "Emu/Io/interception.h"
 #include "Emu/Io/recording_config.h"
 
 #include <QApplication>
@@ -295,7 +296,10 @@ void gs_frame::keyPressEvent(QKeyEvent *keyEvent)
 	}
 	case Qt::Key_F11:
 	{
-		handle_shortcut(gui::shortcuts::shortcut::gw_toggle_recording, {});
+		if (keyEvent->modifiers() == Qt::ControlModifier)
+			handle_shortcut(gui::shortcuts::shortcut::gw_toggle_mouse_and_keyboard, {});
+		else
+			handle_shortcut(gui::shortcuts::shortcut::gw_toggle_recording, {});
 		break;
 	}
 	case Qt::Key_F12:
@@ -419,6 +423,11 @@ void gs_frame::handle_shortcut(gui::shortcuts::shortcut shortcut_key, const QKey
 	{
 		g_disable_frame_limit = !g_disable_frame_limit;
 		gui_log.warning("%s boost mode", g_disable_frame_limit.load() ? "Enabled" : "Disabled");
+		break;
+	}
+	case gui::shortcuts::shortcut::gw_toggle_mouse_and_keyboard:
+	{
+		input::toggle_mouse_and_keyboard();
 		break;
 	}
 	default:
@@ -628,9 +637,8 @@ void gs_frame::hide_on_close()
 {
 	// Make sure not to save the hidden state, which is useless to us.
 	const Visibility current_visibility = visibility();
-	m_gui_settings->SetValue(gui::gs_visibility, current_visibility == Visibility::Hidden ? Visibility::AutomaticVisibility : current_visibility);
-	m_gui_settings->SetValue(gui::gs_geometry, geometry());
-	m_gui_settings->sync();
+	m_gui_settings->SetValue(gui::gs_visibility, current_visibility == Visibility::Hidden ? Visibility::AutomaticVisibility : current_visibility, false);
+	m_gui_settings->SetValue(gui::gs_geometry, geometry(), true);
 
 	if (!g_progr.load())
 	{
@@ -771,6 +779,23 @@ int gs_frame::client_height()
 	}
 #endif // _WIN32
 	return height() * devicePixelRatio();
+}
+
+f64 gs_frame::client_display_rate()
+{
+	f64 rate = 20.; // Minimum is 20
+
+	Emu.BlockingCallFromMainThread([this, &rate]()
+	{
+		const QList<QScreen*> screens = QGuiApplication::screens();
+
+		for (int i = 0; i < screens.count(); i++)
+		{
+			rate = std::fmax(rate, ::at32(screens, i)->refreshRate());
+		}
+	});
+
+	return rate;
 }
 
 void gs_frame::flip(draw_context_t, bool /*skip_frame*/)

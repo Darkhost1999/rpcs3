@@ -110,6 +110,7 @@ public:
 		const QString force_high_pz                = tr("Only useful when debugging differences in GPU hardware.\nNot necessary for average users.\nIf unsure, don't use this option.");
 		const QString debug_output                 = tr("Enables the selected API's inbuilt debugging functionality.\nWill cause severe performance degradation especially with Vulkan.\nOnly useful to developers.\nIf unsure, don't use this option.");
 		const QString debug_overlay                = tr("Provides a graphical overlay of various debugging information.\nIf unsure, don't use this option.");
+		const QString debug_overlay_io             = tr("Provides a graphical overlay with pad input values for player 1.\nThis is only shown if the other debug overlay is disabled.\nIf unsure, don't use this option.");
 		const QString log_shader_programs          = tr("Dump game shaders to file. Only useful to developers.\nIf unsure, don't use this option.");
 		const QString disable_occlusion_queries    = tr("Disables running occlusion queries. Minor to moderate performance boost.\nMight introduce issues with broken occlusion e.g missing geometry and extreme pop-in.");
 		const QString disable_video_output         = tr("Disables all video output and PS3 graphical rendering.\nIts only use case is to evaluate performance on CELL for development.");
@@ -141,6 +142,8 @@ public:
 		const QString show_shader_compilation_hint = tr("Shows 'Compiling shaders' hint using the native overlay.");
 		const QString show_ppu_compilation_hint    = tr("Shows 'Compiling PPU modules' hint using the native overlay.");
 		const QString show_pressure_intensity_toggle_hint = tr("Shows pressure intensity toggle hint using the native overlay.");
+		const QString show_analog_limiter_toggle_hint = tr("Shows analog limiter toggle hint using the native overlay.");
+		const QString show_mouse_and_keyboard_toggle_hint = tr("Shows mouse and keyboard toggle hint using the native overlay.");
 		const QString use_native_interface         = tr("Enables use of native HUD within the game window that can interact with game controllers.\nWhen disabled, regular Qt dialogs are used instead.\nCurrently, the on-screen keyboard only supports the English key layout.");
 		const QString pause_during_home_menu       = tr("When enabled, opening the home menu will also pause emulation.\nWhile most games pause themselves while the home menu is shown, some do not.\nIn that case it can be helpful to pause the emulation whenever the home menu is open.");
 
@@ -169,7 +172,7 @@ public:
 		const QString resolution                 = tr("This setting will be ignored if the Resolution Scale is set to anything other than 100%!\nLeave this on 1280x720. Every PS3 game is compatible with this resolution.\nOnly use 1920x1080 if the game supports it.\nRarely due to emulation bugs some games will only render at low resolutions like 480p.");
 		const QString graphics_adapter           = tr("On multi GPU systems select which GPU to use in RPCS3 when using Vulkan.\nThis is not needed when using OpenGL.");
 		const QString aspect_ratio               = tr("Leave this on 16:9 unless you have a 4:3 monitor.");
-		const QString frame_limit                = tr("Off is the fastest option.\nUsing the frame limiter will add extra overhead and slow down the game. However, some games will crash if the framerate is too high.\nPS3 native should only be used if Auto is not working correctly as it can introduce frame-pacing issues.\nInfinite adds a positive feedback loop which adds another vblank signal per frame allowing more games to be fps limitless.");
+		const QString frame_limit                = tr("Off is the fastest option.\nUsing the frame limiter will add extra overhead and slow down the game. However, some games will crash if the framerate is too high.\nPS3 native should only be used if Auto is not working correctly as it can introduce frame-pacing issues.\nInfinite adds a positive feedback loop which adds another vblank signal per frame allowing more games to be fps limitless.\nExperienced users with need of other frame limits should use the setting \"Second Frame Limit\" in the configuration file.");
 		const QString anti_aliasing              = tr("Emulate PS3 multisampling layout.\nCan fix some otherwise difficult to solve graphics glitches.\nLow to moderate performance hit depending on your GPU hardware.");
 		const QString anisotropic_filter         = tr("Higher values increase sharpness of textures on sloped surfaces at the cost of GPU resources.\nModern GPUs can handle this setting just fine, even at 16x.\nKeep this on Automatic if you want to use the original setting used by a real PS3.");
 		const QString resolution_scale           = tr("Scales the game's resolution by the given percentage.\nThe base resolution is always 1280x720.\nSet this value to 100% if you want to use the normal Resolution options.\nValues below 100% will usually not improve performance.");
@@ -246,6 +249,7 @@ public:
 		const QString dns_swap      = tr("DNS Swap List.\nOnly available in custom configurations.");
 		const QString bind          = tr("Interface IP Address to bind to.\nOnly available in custom configurations.");
 		const QString enable_upnp   = tr("Enable UPNP.\nThis will automatically forward ports bound on 0.0.0.0 if your router has UPNP enabled.");
+		const QString psn_country   = tr("Changes the RPCN country.");
 
 		// system
 
@@ -278,6 +282,7 @@ public:
 		const QString mmjoy       = tr("The MMJoystick handler should work with almost any controller recognized by Windows. However, it is recommended that you use the more specific handlers if you have a controller that supports them.");
 		const QString sdl         = tr("The SDL handler supports a variety of controllers across different platforms.");
 
+		const QString analog_limiter     = tr("Applies the stick multipliers while this special button is pressed.<br>Enable \"Toggle\" if you want to toggle the analog limiter on button press instead.");
 		const QString pressure_intensity = tr("Controls the intensity of pressure sensitive buttons while this special button is pressed.<br>Enable \"Toggle\" if you want to toggle the intensity on button press instead.<br>Use the percentage to change how hard you want to press a button.");
 		const QString pressure_deadzone  = tr("Controls the deadzone of pressure sensitive buttons. It determines how far the button has to be pressed until it is recognized by the game. The resulting range will be projected onto the full button sensitivity range.");
 		const QString squircle_factor    = tr("The actual DualShock 3's stick range is not circular but formed like a rounded square (or squircle) which represents the maximum range of the emulated sticks. You can use the squircle values to modify the stick input if your sticks can't reach the corners of that range. A value of 0 does not apply any so called squircling. A value of 8000 is usually recommended.");
@@ -291,7 +296,7 @@ public:
 		const QString mouse_deadzones    = tr("The mouse deadzones represent the games' own deadzones on the x and y axes. Games usually enforce their own deadzones to filter out small unwanted stick movements. In consequence, mouse input feels unintuitive since it relies on immediate responsiveness. You can change these values temporarily during gameplay in order to find out the optimal values for your game (Alt+T and Alt+Y for x, Alt+U and Alt+I for y).");
 		const QString mouse_acceleration = tr("The mouse acceleration can be used to amplify your mouse movements on the x and y axes. Increase these values if your mouse movements feel too slow while playing a game. You can change these values temporarily during gameplay in order to find out the optimal values (Alt+G and Alt+H for x, Alt+J and Alt+K for y). Keep in mind that modern mice usually provide different modes and settings that can be used to change mouse movement speeds as well.");
 		const QString mouse_movement     = tr("The mouse movement mode determines how the mouse movement is translated to pad input.<br>Use the relative mode for traditional mouse movement.<br>Use the absolute mode to use the mouse's distance to the center of the screen as input value.");
-		const QString button_assignment  = tr("Left-click: remap this button.<br>Shift + Left-click: add an additional button mapping.<br>Right-click: clear this button mapping.");
+		const QString button_assignment  = tr("Left-click: remap this button.<br>Shift + Left-click: add an additional button mapping.<br>Alt + Left-click: differentiate between trigger press and release (only XInput for now).<br>Right-click: clear this button mapping.");
 
 	} gamepad_settings;
 };

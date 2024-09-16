@@ -162,6 +162,7 @@ enum class emu_settings_type
 	GHLtar,
 	MidiDevices,
 	SDLMappings,
+	IoDebugOverlay,
 
 	// Misc
 	ExitRPCS3OnFinish,
@@ -174,6 +175,8 @@ enum class emu_settings_type
 	ShowShaderCompilationHint,
 	ShowPPUCompilationHint,
 	ShowPressureIntensityToggleHint,
+	ShowAnalogLimiterToggleHint,
+	ShowMouseAndKeyboardToggleHint,
 	WindowTitleFormat,
 	PauseDuringHomeMenu,
 
@@ -184,6 +187,7 @@ enum class emu_settings_type
 	PSNStatus,
 	BindAddress,
 	EnableUpnp,
+	PSNCountry,
 
 	// System
 	LicenseArea,
@@ -351,6 +355,7 @@ inline static const QMap<emu_settings_type, cfg_location> settings_location =
 	{ emu_settings_type::GHLtar,          { "Input/Output", "GHLtar emulated controller" }},
 	{ emu_settings_type::MidiDevices,     { "Input/Output", "Emulated Midi devices" }},
 	{ emu_settings_type::SDLMappings,     { "Input/Output", "Load SDL GameController Mappings" }},
+	{ emu_settings_type::IoDebugOverlay,  { "Input/Output", "IO Debug overlay" }},
 
 	// Misc
 	{ emu_settings_type::ExitRPCS3OnFinish,               { "Miscellaneous", "Exit RPCS3 when process finishes" }},
@@ -363,6 +368,8 @@ inline static const QMap<emu_settings_type, cfg_location> settings_location =
 	{ emu_settings_type::ShowShaderCompilationHint,       { "Miscellaneous", "Show shader compilation hint"}},
 	{ emu_settings_type::ShowPPUCompilationHint,          { "Miscellaneous", "Show PPU compilation hint"}},
 	{ emu_settings_type::ShowPressureIntensityToggleHint, { "Miscellaneous", "Show pressure intensity toggle hint"}},
+	{ emu_settings_type::ShowAnalogLimiterToggleHint,     { "Miscellaneous", "Show analog limiter toggle hint"}},
+	{ emu_settings_type::ShowMouseAndKeyboardToggleHint,  { "Miscellaneous", "Show mouse and keyboard toggle hint"}},
 	{ emu_settings_type::SilenceAllLogs,                  { "Miscellaneous", "Silence All Logs" }},
 	{ emu_settings_type::WindowTitleFormat,               { "Miscellaneous", "Window Title Format" }},
 	{ emu_settings_type::PauseDuringHomeMenu,             { "Miscellaneous", "Pause Emulation During Home Menu" }},
@@ -374,6 +381,7 @@ inline static const QMap<emu_settings_type, cfg_location> settings_location =
 	{ emu_settings_type::PSNStatus,      { "Net", "PSN status"}},
 	{ emu_settings_type::BindAddress,    { "Net", "Bind address"}},
 	{ emu_settings_type::EnableUpnp,     { "Net", "UPNP Enabled"}},
+	{ emu_settings_type::PSNCountry,     { "Net", "PSN Country"}},
 
 	// System
 	{ emu_settings_type::LicenseArea,           { "System", "License Area"}},

@@ -87,6 +87,7 @@ extern std::pair<std::shared_ptr<lv2_overlay>, CellError> ppu_load_overlay(const
 extern bool ppu_load_rel_exec(const ppu_rel_object&);
 
 extern void send_close_home_menu_cmds();
+extern void check_microphone_permissions();
 
 extern void signal_system_cache_can_stay();
 
@@ -784,9 +785,9 @@ bool Emulator::BootRsxCapture(const std::string& path)
  
  	const std::string lower = fmt::to_lower(path);
 
-	if (lower.ends_with(".SAVESTAT.gz") || lower.ends_with(".SAVESTAT.zst"))
+	if (lower.ends_with(".gz") || lower.ends_with(".zst"))
 	{
-		if (lower.ends_with(".SAVESTAT.gz"))
+		if (lower.ends_with(".gz"))
 		{
 			load.m_file_handler = make_compressed_serialization_file_handler(std::move(in_file));
 		}
@@ -1722,6 +1723,15 @@ game_boot_result Emulator::Load(const std::string& title_id, bool is_disc_patch,
 			return game_boot_result::no_errors;
 		}
 
+		// Check microphone permissions
+		if (g_cfg.audio.microphone_type != microphone_handler::null)
+		{
+			if (const std::vector<std::string> device_list = fmt::split(g_cfg.audio.microphone_devices.to_string(), {"@@@"}); !device_list.empty())
+			{
+				check_microphone_permissions();
+			}
+		}
+
 		// Detect boot location
 		const std::string hdd0_game = vfs::get("/dev_hdd0/game/");
 		const bool from_hdd0_game   = IsPathInsideDir(m_path, hdd0_game);
@@ -1747,7 +1757,7 @@ game_boot_result Emulator::Load(const std::string& title_id, bool is_disc_patch,
 				// Booting disc game from wrong location
 				sys_log.error("Disc game %s found at invalid location /dev_hdd0/game/", m_title_id);
 
-				const std::string games_common = g_cfg_vfs.get(g_cfg_vfs.games_dir, rpcs3::utils::get_emu_dir());
+				const std::string games_common = rpcs3::utils::get_games_dir();
 				const std::string dst_dir = games_common + sfb_dir.substr(hdd0_game.size());
 
 				// Move and retry from correct location
@@ -3541,6 +3551,13 @@ void Emulator::Kill(bool allow_autoexit, bool savestate, savestate_stage* save_s
 
 							const u64 hash_val = read_from_ptr<be_t<u64>>(result.data) & -65536;
 							const f64 usage = get_cpu_program_usage_percent(hash_val);
+
+							if (usage == 0)
+							{
+								iter = index + 1;
+								continue;
+							}
+
 							const std::string text_append = fmt::format("usage %%%g, ", usage);
 							new_log.insert(new_log.begin() + seperator + out_added + 2, text_append.begin(), text_append.end());
 
@@ -4063,6 +4080,56 @@ game_boot_result Emulator::AddGameToYml(const std::string& path)
 
 	sys_log.notice("Nothing to add in path %s (title_id=%s, category=%s)", path, title_id, cat);
 	return game_boot_result::invalid_file_or_folder;
+}
+
+u32 Emulator::RemoveGames(const std::vector<std::string>& title_id_list)
+{
+	if (title_id_list.empty())
+	{
+		return 0;
+	}
+
+	u32 games_removed = 0;
+
+	m_games_config.set_save_on_dirty(false);
+
+	for (const std::string& title_id : title_id_list)
+	{
+		if (RemoveGameFromYml(title_id) == game_boot_result::no_errors)
+		{
+			games_removed++;
+		}
+	}
+
+	m_games_config.set_save_on_dirty(true);
+
+	if (m_games_config.is_dirty() && !m_games_config.save())
+	{
+		sys_log.error("Failed to save games.yml after removing games");
+	}
+
+	return games_removed;
+}
+
+game_boot_result Emulator::RemoveGameFromYml(const std::string& title_id)
+{
+	// Remove title from games.yml
+	switch (m_games_config.remove_game(title_id))
+	{
+	case games_config::result::failure:
+	{
+		sys_log.error("Failed to remove title '%s' (error=%s)", title_id, fs::g_tls_error);
+		return game_boot_result::generic_error;
+	}
+	case games_config::result::success:
+	case games_config::result::exists: // not applicable for m_games_config.remove_game(). Added just to avoid compilation warnings!
+	{
+		sys_log.notice("Removed title '%s'", title_id);
+		return game_boot_result::no_errors;
+	}
+	}
+
+	return game_boot_result::generic_error;
 }
 
 bool Emulator::IsPathInsideDir(std::string_view path, std::string_view dir) const

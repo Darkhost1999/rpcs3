@@ -38,6 +38,7 @@
 #include "emulated_pad_settings_dialog.h"
 #include "basic_mouse_settings_dialog.h"
 #include "raw_mouse_settings_dialog.h"
+#include "vfs_tool_dialog.h"
 #include "welcome_dialog.h"
 
 #include <thread>
@@ -80,6 +81,11 @@
 
 #include "ui_main_window.h"
 
+#if QT_CONFIG(permissions)
+#include <QGuiApplication>
+#include <QPermissions>
+#endif
+
 LOG_CHANNEL(gui_log, "GUI");
 
 extern atomic_t<bool> g_user_asked_for_frame_capture;
@@ -99,6 +105,32 @@ extern void process_qt_events()
 		// Adding a timeout here doesn't seem to do anything in that case.
 		QApplication::processEvents();
 	}
+}
+
+extern void check_microphone_permissions()
+{
+#if QT_CONFIG(permissions)
+	Emu.BlockingCallFromMainThread([]()
+	{
+		QMicrophonePermission permission;
+		switch (qApp->checkPermission(permission))
+		{
+		case Qt::PermissionStatus::Undetermined:
+			gui_log.notice("Requesting microphone permission");
+			qApp->requestPermission(permission, []()
+			{
+				check_microphone_permissions();
+			});
+			break;
+		case Qt::PermissionStatus::Denied:
+			gui_log.error("RPCS3 has no permissions to access microphones on this device.");
+			break;
+		case Qt::PermissionStatus::Granted:
+			gui_log.notice("Microphone permission granted");
+			break;
+		}
+	});
+#endif
 }
 
 main_window::main_window(std::shared_ptr<gui_settings> gui_settings, std::shared_ptr<emu_settings> emu_settings, std::shared_ptr<persistent_settings> persistent_settings, QWidget *parent)
@@ -1730,16 +1762,14 @@ void main_window::DecryptSPRXLibraries()
 void main_window::SaveWindowState() const
 {
 	// Save gui settings
-	m_gui_settings->SetValue(gui::mw_geometry, saveGeometry());
-	m_gui_settings->SetValue(gui::mw_windowState, saveState());
-	m_gui_settings->SetValue(gui::mw_mwState, m_mw->saveState());
+	m_gui_settings->SetValue(gui::mw_geometry, saveGeometry(), false);
+	m_gui_settings->SetValue(gui::mw_windowState, saveState(), false);
+	m_gui_settings->SetValue(gui::mw_mwState, m_mw->saveState(), true);
 
 	// Save column settings
 	m_game_list_frame->SaveSettings();
 	// Save splitter state
 	m_debugger_frame->SaveSettings();
-
-	m_gui_settings->sync();
 }
 
 void main_window::RepaintThumbnailIcons()
@@ -3016,6 +3046,12 @@ void main_window::CreateConnects()
 	connect(ui->toolsExtractPUPAct, &QAction::triggered, this, &main_window::ExtractPup);
 
 	connect(ui->toolsExtractTARAct, &QAction::triggered, this, &main_window::ExtractTar);
+
+	connect(ui->toolsVfsDialogAct, &QAction::triggered, this, [this]()
+	{
+		vfs_tool_dialog* dlg = new vfs_tool_dialog(this);
+		dlg->show();
+	});
 
 	connect(ui->showDebuggerAct, &QAction::triggered, this, [this](bool checked)
 	{

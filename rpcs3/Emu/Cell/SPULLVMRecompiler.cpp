@@ -68,7 +68,7 @@ const extern spu_decoder<spu_iflag> g_spu_iflag;
 #endif
 
 #ifdef ARCH_ARM64
-#include "Emu/CPU/Backends/AArch64JIT.h"
+#include "Emu/CPU/Backends/AArch64/AArch64JIT.h"
 #endif
 
 class spu_llvm_recompiler : public spu_recompiler_base, public cpu_translator
@@ -1196,7 +1196,7 @@ class spu_llvm_recompiler : public spu_recompiler_base, public cpu_translator
 
 		if (g_cfg.core.rsx_accurate_res_access)
 		{
-			call("spu_putllc16_rsx_res", +[](spu_thread* _spu, u32 ls_dst, u32 lsa, u32 eal, u32 notify)
+			const auto success = call("spu_putllc16_rsx_res", +[](spu_thread* _spu, u32 ls_dst, u32 lsa, u32 eal, u32 notify) -> bool
 			{
 				const u32 raddr = eal;
 
@@ -1205,72 +1205,53 @@ class spu_llvm_recompiler : public spu_recompiler_base, public cpu_translator
 
 				const auto dest = raddr | (ls_dst & 127);
 				const auto _dest = vm::get_super_ptr<atomic_t<nse_t<v128>>>(dest);
-				using spu_rdata_t = decltype(spu_thread::rdata);
-
-				extern bool cmp_rdata(const spu_rdata_t& _lhs, const spu_rdata_t& _rhs);
-
-				// if (!cmp_rdata(*reinterpret_cast<const decltype(_spu->rdata)*>(_dest), _spu->rdata))
-				// {
-				// 	_spu->ch_atomic_stat.set_value(MFC_PUTLLC_FAILURE);
-				// 	_spu->set_events(SPU_EVENT_LR);
-				// 	_spu->raddr = 0;
-				// 	return;
-				// }
 
 				if (rdata == to_write || ((lsa ^ ls_dst) & (SPU_LS_SIZE - 128)))
 				{
 					vm::reservation_update(raddr);
 					_spu->ch_atomic_stat.set_value(MFC_PUTLLC_SUCCESS);
 					_spu->raddr = 0;
-					return;
+					return true;
 				}
 
-				const u64 rtime = _spu->rtime;
 				auto& res = vm::reservation_acquire(eal);
 
-				if (res != rtime)
+				if (res % 128)
 				{
-					_spu->ch_atomic_stat.set_value(MFC_PUTLLC_FAILURE);
-					_spu->set_events(SPU_EVENT_LR);
-					_spu->raddr = 0;
-					return;
+					return false;
 				}
 
-				rsx::reservation_lock rsx_lock(raddr, 128);
-
-				// Touch memory
-				utils::trigger_write_page_fault(vm::base(dest ^ (4096 / 2)));
-
-				auto [old_res, ok] = res.fetch_op([&](u64& rval)
 				{
-					if (rtime != rval)
+					rsx::reservation_lock rsx_lock(raddr, 128);
+
+					// Touch memory
+					utils::trigger_write_page_fault(vm::base(dest ^ (4096 / 2)));
+
+					auto [old_res, ok] = res.fetch_op([&](u64& rval)
+					{
+						if (rval % 128)
+						{
+							return false;
+						}
+
+						rval |= 127;
+						return true;
+					});
+
+					if (!ok)
 					{
 						return false;
 					}
 
-					rval |= 127;
-					return true;
-				});
+					if (!_dest->compare_and_swap_test(rdata, to_write))
+					{
+						res.release(old_res);
+						return false;
+					}
 
-				if (!ok)
-				{
-					_spu->ch_atomic_stat.set_value(MFC_PUTLLC_FAILURE);
-					_spu->set_events(SPU_EVENT_LR);
-					_spu->raddr = 0;
-					return;
+					// Success
+					res.release(old_res + 128);
 				}
-
-				if (!_dest->compare_and_swap_test(rdata, to_write))
-				{
-					res.release(old_res);
-					_spu->ch_atomic_stat.set_value(MFC_PUTLLC_FAILURE);
-					_spu->set_events(SPU_EVENT_LR);
-					_spu->raddr = 0;
-					return;
-				}
-
-				// Success
-				res.release(old_res + 128);
 
 				_spu->ch_atomic_stat.set_value(MFC_PUTLLC_SUCCESS);
 				_spu->raddr = 0;
@@ -1279,10 +1260,12 @@ class spu_llvm_recompiler : public spu_recompiler_base, public cpu_translator
 				{
 					res.notify_all();
 				}
+
+				return true;
 			}, m_thread, dest, _lsa, _eal, m_ir->getInt32(!info.no_notify));
 
 
-			m_ir->CreateBr(_final);
+			m_ir->CreateCondBr(success, _final, _fail);
 
 			m_ir->SetInsertPoint(_fail);
 			call("PUTLLC16_fail", +on_fail, m_thread, _eal);
@@ -1491,6 +1474,7 @@ public:
 			m_md_unlikely = llvm::MDTuple::get(m_context, {md_name, md_low, md_high});
 
 			// Initialize transform passes
+			clear_transforms();
 #ifdef ARCH_ARM64
 			{
 				auto should_exclude_function = [](const std::string& fn_name)
@@ -1515,6 +1499,8 @@ public:
 			}
 #endif
 		}
+
+		reset_transforms();
 	}
 
 	void init_luts()
@@ -3841,8 +3827,8 @@ public:
 				m_ir->CreateStore(stat_val, stat_ptr);
 				m_ir->CreateBr(next);
 				m_ir->SetInsertPoint(next);
-				return;
 			}
+			return;
 		}
 		case MFC_LSA:
 		{

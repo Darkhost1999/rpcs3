@@ -239,6 +239,7 @@ target_sources(rpcs3_emu PRIVATE
     Cell/Modules/cellAdec.cpp
     Cell/Modules/cellAtrac.cpp
     Cell/Modules/cellAtracMulti.cpp
+    Cell/Modules/cellAtracXdec.cpp
     Cell/Modules/cellAudio.cpp
     Cell/Modules/cellAudioOut.cpp
     Cell/Modules/cellAuthDialog.cpp
@@ -389,9 +390,12 @@ target_sources(rpcs3_emu PRIVATE
     CPU/CPUTranslator.cpp
 )
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|arm64|aarch64")
     target_sources(rpcs3_emu PRIVATE
-        CPU/Backends/AArch64JIT.cpp
+        CPU/Backends/AArch64/AArch64ASM.cpp
+        CPU/Backends/AArch64/AArch64Common.cpp
+        CPU/Backends/AArch64/AArch64JIT.cpp
+        CPU/Backends/AArch64/AArch64Signal.cpp
     )
 endif()
 
@@ -449,6 +453,7 @@ target_sources(rpcs3_emu PRIVATE
     NP/np_structs_extra.cpp
     NP/rpcn_client.cpp
     NP/rpcn_config.cpp
+    NP/rpcn_countries.cpp
     NP/upnp_config.cpp
     NP/upnp_handler.cpp
 )
@@ -622,4 +627,8 @@ endif()
 
 if(USE_PRECOMPILED_HEADERS)
     target_precompile_headers(rpcs3_emu PRIVATE "${PROJECT_SOURCE_DIR}/rpcs3/stdafx.h")
+endif()
+
+if(WAYLAND_FOUND)
+    target_link_libraries(rpcs3_emu PRIVATE OpenGL::EGL)
 endif()
