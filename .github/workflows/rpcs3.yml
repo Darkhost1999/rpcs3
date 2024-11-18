@@ -22,56 +22,6 @@ env:
   BUILD_SOURCEBRANCHNAME: ${{ github.ref_name }}
 
 jobs:
-  Linux_Build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        compiler: [clang, gcc]
-    env:
-      CCACHE_DIR: ${{ github.workspace }}/ccache
-      CI_HAS_ARTIFACTS: true
-      DEPLOY_APPIMAGE: true
-      APPDIR: "/rpcs3/build/appdir"
-      ARTDIR: "/root/artifacts"
-      RELEASE_MESSAGE: "/rpcs3/GitHubReleaseMessage-${{ matrix.compiler }}.txt"
-      COMPILER: ${{ matrix.compiler }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@main
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Setup Cache
-        uses: actions/cache@main
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-ccache-${{ matrix.compiler }}
-
-      - name: Append Compiler version to appimage
-        run: |
-          file=".ci/deploy-linux.sh"
-          sed -i 's/RPCS3_APPIMAGE="rpcs3-v${COMM_TAG}-${COMM_COUNT}-${COMM_HASH}_linux64.AppImage"/RPCS3_APPIMAGE="rpcs3-v${COMM_TAG}-${COMM_COUNT}-${COMM_HASH}-${COMPILER}_linux64.AppImage"/g' $file
-
-      - name: Docker setup and build
-        run: |
-          docker pull --quiet rpcs3/rpcs3-ci-focal:1.7
-          docker run                      \
-            -v $PWD:/rpcs3              \
-            --env-file .ci/docker.env \
-            -v ${{ env.CCACHE_DIR }}:/root/.ccache  \
-            -v ${{ github.workspace }}/artifacts:/root/artifacts \
-            rpcs3/rpcs3-ci-focal:1.7 \
-            /rpcs3/.ci/build-linux.sh
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@main
-        with:
-          name: RPCS3 for Linux (${{ matrix.compiler }})
-          path: ${{ github.workspace }}/build/*.AppImage
-          compression-level: 0
-
   Windows_Build:
     runs-on: windows-latest
     env:
@@ -144,11 +94,4 @@ jobs:
         with:
           name: RPCS3 for Windows (MSVC) (zip)
           path: bin2
-          if-no-files-found: error
-
-      - name: Upload artifacts (7z)
-        uses: actions/upload-artifact@main
-        with:
-          name: RPCS3 for Windows (MSVC) (7z)
-          path: build
           if-no-files-found: error
