@@ -6,7 +6,7 @@
 #include "../rsx_utils.h"
 #include "Emu/Memory/vm.h"
 
-#define ENABLE_SURFACE_CACHE_DEBUG 0
+#define ENABLE_SURFACE_CACHE_DEBUG 1
 
 namespace rsx
 {
